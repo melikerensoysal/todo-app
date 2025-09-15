@@ -8,8 +8,7 @@ const dateElement = document.getElementById("date");
 const filters = document.querySelectorAll(".filter");
 
 let todos = [];
-let currentfilter ="all";
-
+let currentFilter = "all";
 
 addTaskBtn.addEventListener("click", () => {
     addTodo(taskInput.value);
@@ -19,93 +18,160 @@ taskInput.addEventListener("keydown", (e) => {
     if (e.key == "Enter") addTodo(taskInput.value);
 });
 
-clearCompletedBtn.addEventListener("click",clearCompleted)
+clearCompletedBtn.addEventListener("click", clearCompleted);
 
-function addTodo(text){
-    if(text.trim() === "") return
+function addTodo(text) {
+    if (text.trim() === "") return;
 
-
-    const todo ={
+    const todo = {
         id: Date.now(),
         text,
-        completed:false
-    }
+        completed: false,
+    };
 
-    todos.push(todo)
+    todos.push(todo);
 
-    saveTodos()
-    //renderTodos()
+    saveTodos();
+    renderTodos();
+    taskInput.value = "";
 }
 
 function saveTodos() {
-    localStorage.setItem("todos", JSON.stringify(todos))
-    updateItemCount()
-    checkEmptyState()
+    localStorage.setItem("todos", JSON.stringify(todos));
+    updateItemCount();
+    checkEmptyState();
 }
 
 function updateItemCount() {
-    const uncompletedTodos = todos.filter(todo => !todo.completed)
+    const uncompletedTodos = todos.filter((todo) => todo && !todo.completed);
     itemsLeft.textContent = `${uncompletedTodos.length} item${
         uncompletedTodos.length !== 1 ? "s" : ""
-    }left`;
+    } left`;
 }
 
 function checkEmptyState() {
-    const filteredTodos = filterTodos(currentfilter)
-    if(filteredTodos.length === 0) emptyState.classList.remove("hidden")
-    else emptyState.classList.add("hidden")
+    const filteredTodos = filterTodos(currentFilter);
+    if (filteredTodos.length === 0) emptyState.classList.remove("hidden");
+    else emptyState.classList.add("hidden");
 }
 
 function filterTodos(filter) {
-    switch(filter){
-        case"active":
-            return todos.filter((todo) => !todo.completed)
-        case"completed":
-            return todos.filter((todo) => todo.completed)
+    switch (filter) {
+        case "active":
+            return todos.filter((todo) => todo && !todo.completed);
+        case "completed":
+            return todos.filter((todo) => todo && todo.completed);
         default:
-            return todos;
-
+            return todos.filter(Boolean);
     }
-} 
+}
 
 function renderTodos() {
     todosList.innerHTML = "";
 
-    const filteredTodos = filterTodos(currentfilter)
+    const filteredTodos = filterTodos(currentFilter);
 
-    filterTodos.forEach(todo => {
-        const todoItem = document.createElement("Li")
-        todoItem.classList.add("todo-item")
-        if(todo.completed) todoItem.classList.add("completed")
-        
-        const checkboxContainer = document.createElement("label")
-        checkboxContainer.classList.add("checkbox-container")
+    filteredTodos.forEach((todo) => {
+        if (!todo) return;
 
-        const checkbox = document.createElement("input")
-        checkbox.type = "checkbox"
-        checkbox.classList.add("todo-checkbox")
-        checkbox.checked = todo.completed
-        checkbox.addEventListener("change", () => toggleTodo(todo))
+        const todoItem = document.createElement("li");
+        todoItem.classList.add("todo-item");
+        if (todo.completed) todoItem.classList.add("completed");
 
-        const checkmark = document.createElement("span")
-        checkmark.classList.add("checkmark")
+        const checkboxContainer = document.createElement("label");
+        checkboxContainer.classList.add("checkbox-container");
 
-        checkboxContainer.appendChild(checkbox)
-        checkboxContainer.appendChild(checkmark)
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.classList.add("todo-checkbox");
+        checkbox.checked = todo.completed;
+        checkbox.addEventListener("change", () => toggleTodo(todo.id));
 
-        const todoText = document.createElement("span")
-        todoText.classList.add("todo-item-text")
-        todoText.textContent = todo.text
+        const checkmark = document.createElement("span");
+        checkmark.classList.add("checkmark");
+
+        checkboxContainer.appendChild(checkbox);
+        checkboxContainer.appendChild(checkmark);
+
+        const todoText = document.createElement("span");
+        todoText.classList.add("todo-item-text");
+        todoText.textContent = todo.text;
 
         const deleteBtn = document.createElement("button");
-        deleteBtn.classList.add("delete-btn")
+        deleteBtn.classList.add("delete-btn");
         deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
         deleteBtn.addEventListener("click", () => deleteTodo(todo.id));
 
-    })
+        todoItem.appendChild(checkboxContainer);
+        todoItem.appendChild(todoText);
+        todoItem.appendChild(deleteBtn);
+
+        todosList.appendChild(todoItem);
+    });
 }
 
-function clearCompleted() {}
-function toggleTodo(id) {}
-function deleteTodo(id) {}
+function clearCompleted() {
+    todos = todos.filter((todo) => todo && !todo.completed);
+    saveTodos();
+    renderTodos();
+}
 
+function toggleTodo(id) {
+    todos = todos.map((todo) => {
+        if (!todo) return null;
+        if (todo.id === id) {
+            return { ...todo, completed: !todo.completed };
+        }
+        return todo;
+    }).filter(Boolean);
+    saveTodos();
+    renderTodos();
+}
+
+function deleteTodo(id) {
+    todos = todos.filter((todo) => todo && todo.id !== id);
+    saveTodos();
+    renderTodos();
+}
+
+function loadTodos() {
+    const storedTodos = localStorage.getItem("todos");
+    if (storedTodos) {
+        const parsed = JSON.parse(storedTodos);
+        todos = Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    }
+    renderTodos();
+}
+
+filters.forEach(filter => {
+    filter.addEventListener("click", () => {
+        setActiveFilter(filter.getAttribute("data-filter"))
+    })
+})
+
+function setActiveFilter(filter) {
+    currentFilter = filter;
+
+    filters.forEach(item => {
+        if(item.getAttribute("data-filter") === filter) {
+            item.classList.add("active");    
+        } else {
+            item.classList.remove("active");
+        }
+    });
+    
+    renderTodos();
+}
+
+function setDate() {
+    const options = {weekday:"long",month:"short", day:"numeric"};
+    const today = new Date();
+
+    dateElement.textContent = today.toLocaleDateString("en-US", options );
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    loadTodos();
+    updateItemCount();
+    setDate();
+});
