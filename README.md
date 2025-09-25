@@ -2,7 +2,7 @@
 
 Simple and lightweight Todo App to manage your daily tasks efficiently.
 
-[![Vercel](https://vercel.com/button)](https://todo-app.vercel.app)
+[![Vercel](https://vercel.com/button)](https://todo-app-ivory-one-21.vercel.app/)
 
 ## Features
 
